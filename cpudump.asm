@@ -20,22 +20,6 @@ CLR_ATTR	equ	03h
 V_STARTPOS	equ	5d		; for box
 HOTKEY		equ	2		; key '1'
 
-.data
-	MSG_LEN		equ	5		; !!! HARDCODE !!! be careful
-	reg_msg		db	"AX = "
-			db	"CX = "
-			db	"DX = "
-			db	"BX = "
-			db	"SP = "
-			db	"BP = "
-			db	"SI = "
-			db	"DI = "
-			db	"DS = "
-			db	"ES = "
-	N_REGS		equ	($ - offset reg_msg)/MSG_LEN
-
-EOP	db	0		; end of program addr
-
 .code
 
 org 100h
@@ -78,10 +62,9 @@ attach_int	proc
 	push	ds es
 
 	in	al, 60h			; input scancode
-;	mov	word ptr es:[di], ax	; draw it
 	cmp	al, HOTKEY
 	jne	@@old_int
-
+	
 	call	dump
 
 	in	al, 61h
@@ -90,10 +73,17 @@ attach_int	proc
 	and	al, not 80h
 	out	61h, al
 
+	pop	es ds
+	popa
+	iret
+
+
+
 ;----------------call old interrupt--------------------
 @@old_int:
 	pop	es ds
 	popa
+
 		db	0eah		; jmp far
 	old_adr	dw	0		;        :[old_adr]
 	old_seg	dw	0		; old_seg:
@@ -105,5 +95,22 @@ attach_int	endp
 
 
 include	dumplib.asm
+
+.data
+	MSG_LEN		equ	5		; !!! HARDCODE !!! be careful
+	reg_msg		db	"AX = "
+			db	"CX = "
+			db	"DX = "
+			db	"BX = "
+			db	"SP = "
+			db	"BP = "
+			db	"SI = "
+			db	"DI = "
+			db	"DS = "
+			db	"ES = "
+	N_REGS		equ	($ - offset reg_msg)/MSG_LEN
+
+EOP	db	0		; end of program addr
+
 
 end	attach_int
