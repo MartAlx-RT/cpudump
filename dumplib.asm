@@ -154,11 +154,12 @@ itoa	proc
 	mov	al, 0fh
 	and	al, dl			; al = lowest nibble
 
-	cmp	al, 0ah			; print digit or hex-letter
-	jl	@@is_digit
-	add	al, 'A' - '0' - 0ah
-@@is_digit:
-	add	al, '0'
+;	cmp	al, 0ah			; print digit or hex-letter
+;	jl	@@is_digit
+;	add	al, 'A' - '0' - 0ah
+;@@is_digit:
+;	add	al, '0'
+	mov	al, byte ptr hex_dgt[al]
 
 	stosw				; write to VRAM
 
@@ -170,7 +171,7 @@ itoa	endp
 ;------------------------------------------------------------------------------------
 
 
-
+; TODO he
 
 
 ;------------------------------------------------------
@@ -208,7 +209,7 @@ dump	proc
 	add	bx, LINE_SIZE
 
 	sub	bp, 2
-	mov	dx, ss:[bp]			; get register value
+	mov	dx, [bp]			; get register value
 	call	itoa
 
 	cmp	bp, sp

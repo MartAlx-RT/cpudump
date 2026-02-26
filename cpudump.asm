@@ -4,7 +4,6 @@
 locals	@@
 VIDEOSEG	equ	0b800h
 X_STARTPOS	equ	(80/2 - 9/2)*2
-START_POS	equ	(25/2 - 8/2)*80*2 + X_STARTPOS
 
 
 LINE_SIZE	equ	160		; line length in bytes (2 bytes/symbol)
@@ -73,13 +72,17 @@ attach_int	proc
 	and	al, not 80h
 	out	61h, al
 
+	mov	al, 20h
+	out	20h, al
+
 	pop	es ds
 	popa
+
 	iret
 
 
 
-;----------------call old interrupt--------------------
+;---------------call old interrupt--------------------
 @@old_int:
 	pop	es ds
 	popa
@@ -110,7 +113,9 @@ include	dumplib.asm
 			db	"ES = "
 	N_REGS		equ	($ - offset reg_msg)/MSG_LEN
 
-EOP	db	0		; end of program addr
+	hex_dgt		db	"0123456789ABCDEF"
+
+	EOP		db	0		; end of program addr
 
 
 end	attach_int
