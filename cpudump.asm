@@ -55,6 +55,10 @@ attach:
 handling:
 	pusha					; push AX CX DX BX SP BP SI DI
 	mov	bp, sp				; bp -> di
+	add	bp, 4*2 - 2
+	add	ss:[bp], 3*2			; correct sp value
+
+	mov	bp, sp				; bp -> di
 	add	bp, 8*2 + 2*2 - 2		; bp -> cs (next: ip ax cx dx ...)
 						; -2 because sp points to actual value
 	push	ss:[bp] ss:[bp-2] ss ds es	; push cs ip ds es ss
@@ -158,9 +162,9 @@ include	dumplib.asm
 			db	"DI = "
 			db	"CS = "
 			db	"IP = "
+			db	"SS = "
 			db	"DS = "
 			db	"ES = "
-			db	"SS = "
 	N_REGS		equ	($ - offset reg_msg)/MSG_LEN
 
 	hex_dgt		db	"0123456789ABCDEF"
