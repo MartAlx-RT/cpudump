@@ -17,24 +17,16 @@ RBTM		equ	0bch		; right-bottom corner symbol
 CLR_ATTR	equ	03h
 
 V_STARTPOS	equ	5d		; for box
-HOTKEY		equ	2		; key '1'
+HOTKEY		equ	44h		; key 'f10'
 
 .code
 
 org 100h
 
+
+; attaching this interrupt
 ;------------------------------------------------------
-;-----------------ATTACH_INT FUNCTION------------------
-; set dumpbox interrupt
-;-------------------EXPECTED---------------------------
-; dx - number
-; di - end of string for writing to
-;-------------------RETURNS----------------------------
-; none
-;-------------------DESTROYS---------------------------
-; ax, cx and input parameters
-;------------------------------------------------------
-attach_int	proc
+attach:
 
 	mov	ax, 3509h
 	int	21h
@@ -46,7 +38,7 @@ attach_int	proc
 	mov	di, 4*09h
 
 	cli
-	mov	word ptr es:[di], offset @@handling
+	mov	word ptr es:[di], offset handling
 	mov	word ptr es:[di+2], cs	; write to the interrupt table
 	sti
 
@@ -54,17 +46,26 @@ attach_int	proc
 	mov	dx, offset EOP
 	shr	dx, 4
 	inc	dx
-	int	21h			; terminate & stay resident
 
-@@handling:
-	pusha
-	push	ds es
+int	21h				; terminate & stay resident
+;------------------------------------------------------
+
+; handling this interrupt
+;------------------------------------------------------
+handling:
+	pusha					; push AX CX DX BX SP BP SI DI
+	mov	bp, sp				; bp -> di
+	add	bp, 8*2 + 2*2 - 2		; bp -> cs (ip ax cx dx ...)
+	push	ss:[bp] ss:[bp-2] ds es		; push cs ip ds es
+
+	; FINALLY: ax cx dx bx sp bp si di cs ip ds es PUSHED
 
 	in	al, 60h			; input scancode
 	cmp	al, HOTKEY
-	jne	@@old_int
+	jne	old_int			; execute old interrupt if that isn't HOTKEY
 	
-	call	dump
+	jmp	dump			; will return to terminating:
+	terminating:				
 
 	in	al, 61h
 	or	al, 80h
@@ -72,26 +73,74 @@ attach_int	proc
 	and	al, not 80h
 	out	61h, al
 
-	mov	al, 20h
+	mov	al, 20h			; notify dos about terminating
 	out	20h, al
 
 	pop	es ds
+	add	sp, 2*2			; skip ip, cs
 	popa
 
-	iret
+iret
+;------------------------------------------------------
 
 
 
-;---------------call old interrupt--------------------
-@@old_int:
+; calling old interrupt
+;------------------------------------------------------
+old_int:
 	pop	es ds
+	add	sp, 2*2			; skip ip, cs
 	popa
 
-		db	0eah		; jmp far
-	old_adr	dw	0		;        :[old_adr]
-	old_seg	dw	0		; old_seg:
+	db	0eah			; jmp far
+old_adr	dw	0			;        :[old_adr]
+old_seg	dw	0			; old_seg:
+;------------------------------------------------------
+;------------------------------------------------------
 
-attach_int	endp
+; dump function
+;------------------------------------------------------
+dump:
+;	all registers that i need to dump
+;, DS, ES, SS (Segment), (Index/Pointer). 
+;
+;	from registers:	ax, bx, cx, dx, ds, es, ss, si, di, bp, !!sp!!
+;	from int: cs, ip
+; AX, CX, DX, BX, SP, BP, SI, DI, CS, IP, 
+
+	mov	bp, sp
+	add	bp, N_REGS*2			; set bp to ax (ss:[bp] == ax)
+
+	push	cs
+	pop	ds
+	mov	si, offset reg_msg		; set ds:[si] to reg_msg
+
+	push	VIDEOSEG
+	pop	es
+	mov	bx, V_STARTPOS * LINE_SIZE	; bx always points to beginning of the line
+
+	@@dump_loop:
+		mov	di, bx
+		add	di, X_STARTPOS		; set di to new line
+		mov	cx, MSG_LEN
+		call	strncpy			; si -> new reg msg, di -> end of printing
+	
+		add	bx, LINE_SIZE
+	
+		sub	bp, 2
+		mov	dx, ss:[bp]		; get register value
+		call	itoa
+	
+		cmp	bp, sp
+	jne	@@dump_loop
+
+	mov	di, (V_STARTPOS-1) * LINE_SIZE
+	add	di, X_STARTPOS - 2		; set es:[di] to print box
+	push	(MSG_LEN+4)
+	push	N_REGS
+	call	print_box			; print box
+
+	jmp	terminating
 ;------------------------------------------------------
 ;------------------------------------------------------
 
@@ -99,6 +148,7 @@ attach_int	endp
 
 include	dumplib.asm
 
+	; finally: ax cx dx bx sp bp si di cs ip ds es pushed
 .data
 	MSG_LEN		equ	5		; !!! HARDCODE !!! be careful
 	reg_msg		db	"AX = "
@@ -109,6 +159,8 @@ include	dumplib.asm
 			db	"BP = "
 			db	"SI = "
 			db	"DI = "
+			db	"CS = "
+			db	"IP = "
 			db	"DS = "
 			db	"ES = "
 	N_REGS		equ	($ - offset reg_msg)/MSG_LEN
@@ -118,4 +170,4 @@ include	dumplib.asm
 	EOP		db	0		; end of program addr
 
 
-end	attach_int
+end	attach

@@ -6,66 +6,69 @@
 ; !! PASCAL CONVENTION !!
 ; 1st arg(word) - box width
 ; 2nd arg(word) - box height
+; used clr_attr
 ;-------------------RETURNS----------------------------
 ; prints box with left-top at es:[di]
 ;-------------------DESTROYS---------------------------
 ; cx, ax and input parameters
 ;------------------------------------------------------
-print_box proc
-	push bp
-	mov bp, sp
+print_box	proc	
 
-	mov ah, CLR_ATTR
+	push	bp
+	mov	bp, sp
 
-	cmp word ptr [bp+6], 0
-		jz @@terminate_print_box			; if you wanna print empty box, go fuck yourself
+	mov	ah, clr_attr
 
-	xor cx, cx						; set counter (cx) to zero
+	cmp	word ptr [bp+6], 0
+	jz	@@terminate_print_box	; if you wanna print	empty box, go fuck yourself
 
-	cld								; forward 'stosw' mode
+	xor	cx, cx			; set counter (cx) to zero
 
-	mov al, LTOP					; draw left-top corner
+	cld				; forward 'stosw' mode
+
+	mov	al, LTOP		; draw left-top corner
 	stosw
 
-	mov cx, [bp+6]
-	mov al, HLINE					; draw upper horizontal line
-	rep stosw
+	mov	cx, [bp+6]
+	mov	al, HLINE		; draw upper horizontal line
+	rep	stosw
 
-	mov al, RTOP					; draw right-top corner
+	mov	al, RTOP		; draw right-top corner
 	stosw
-	add di, LINE_SIZE-2				; -2 because 'stosw' adds 2 to di
+	add	di, LINE_SIZE-2		; -2 because 'stosw' adds 2 to di
 
-	mov cx, [bp+4]
-	mov al, VLINE
-	@@right:						; draw right line
-		stosw
-		add di, LINE_SIZE-2
-	loop @@right
+	mov	cx, [bp+4]
+	mov	al, VLINE
+@@right:				; draw right line
+	stosw
+	add	di, LINE_SIZE-2
+loop	@@right
 
-	std								; reverse 'stosw' mode
+	std				; reverse 'stosw' mode
 
-	mov al, RBTM					; draw right-bottom corner
+	mov	al, RBTM		; draw right-bottom corner
 	stosw
 
-	mov cx, [bp+6]
-	mov al, HLINE					; draw lower horizontal line
-	rep stosw
+	mov	cx, [bp+6]
+	mov	al, HLINE		; draw lower horizontal line
+	rep	stosw
 	
-	mov al, LBTM					; draw left-bottom corner
+	mov	al, LBTM		; draw left-bottom corner
 	stosw
-	sub di, LINE_SIZE-2
+	sub	di, LINE_SIZE-2
 
-	mov cx, [bp+4]
-	mov al, VLINE
-	@@left:							; draw left line
-		stosw
-		sub di, LINE_SIZE-2
-	loop @@left
+	mov	cx, [bp+4]
+	mov	al, VLINE
+@@left:					; draw left line
+	stosw
+	sub	di, LINE_SIZE-2
+loop	@@left
 
-	@@terminate_print_box:
-	pop bp
-	ret 4
-print_box endp
+@@terminate_print_box:
+	pop	bp
+	ret	4
+
+print_box	endp
 ;------------------------------------------------------
 ;------------------------------------------------------
 
@@ -154,12 +157,12 @@ itoa	proc
 	mov	al, 0fh
 	and	al, dl			; al = lowest nibble
 
-;	cmp	al, 0ah			; print digit or hex-letter
-;	jl	@@is_digit
-;	add	al, 'A' - '0' - 0ah
-;@@is_digit:
-;	add	al, '0'
-	mov	al, byte ptr hex_dgt[al]
+	cmp	al, 0ah			; print digit or hex-letter
+	jl	@@is_digit
+	add	al, 'A' - '0' - 0ah
+@@is_digit:
+	add	al, '0'
+	;mov	al, byte ptr hex_dgt[al]
 
 	stosw				; write to VRAM
 
@@ -173,62 +176,5 @@ itoa	endp
 
 ; TODO he
 
-
-;------------------------------------------------------
-;-----------------DUMP      FUNCTION-------------------
-; dumps registers to the screen in pretty box
-;-------------------EXPECTED---------------------------
-; nothing
-;-------------------RETURNS----------------------------
-; none
-;-------------------DESTROYS---------------------------
-; nothing
-;------------------------------------------------------
-dump	proc
-
-	pusha					; push AX, CX, DX, BX, SP, BP, SI, DI
-	push	ds es				; save all registers
-
-	mov	bp, sp
-	add	bp, N_REGS*2			; set bp to ax (ss:[bp] == ax)
-
-	push	cs
-	pop	ds
-	mov	si, offset reg_msg		; set ds:[si] to reg_msg
-
-	push	VIDEOSEG
-	pop	es
-	mov	bx, V_STARTPOS * LINE_SIZE	; bx always points to beginning of the line
-
-@@dump_loop:
-	mov	di, bx
-	add	di, X_STARTPOS			; set di to new line
-	mov	cx, MSG_LEN
-	call	strncpy				; si -> new reg msg, di -> end of printing
-
-	add	bx, LINE_SIZE
-
-	sub	bp, 2
-	mov	dx, [bp]			; get register value
-	call	itoa
-
-	cmp	bp, sp
-jne	@@dump_loop
-
-	mov	di, (V_STARTPOS-1) * LINE_SIZE
-	add	di, X_STARTPOS - 2		; set es:[di] to print box
-	push	(MSG_LEN+4)
-	push	N_REGS
-	call	print_box			; print box
-
-	pop	es ds
-	popa					; restore all regs
-
-;	int	20h
-	ret
-
-dump	endp
-;------------------------------------------------------
-;------------------------------------------------------
 
 ;------------------------------------------------------------------------------------
