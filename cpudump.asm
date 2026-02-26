@@ -2,8 +2,8 @@
 .model tiny
 
 locals	@@
-VIDEOSEG	equ	0b800h
-X_STARTPOS	equ	(80/2 - 9/2)*2
+VIDEOSEG	equ	0b800h		; video segment
+X_STARTPOS	equ	(80/2 - 9/2)*2	; left border
 
 
 LINE_SIZE	equ	160		; line length in bytes (2 bytes/symbol)
@@ -17,7 +17,7 @@ RBTM		equ	0bch		; right-bottom corner symbol
 CLR_ATTR	equ	03h
 
 V_STARTPOS	equ	5d		; for box
-HOTKEY		equ	44h		; key 'f10'
+HOTKEY		equ	44h		; 44h = 'f10'
 
 .code
 
@@ -47,7 +47,7 @@ attach:
 	shr	dx, 4
 	inc	dx
 
-int	21h				; terminate & stay resident
+	int	21h			; terminate & stay resident
 ;------------------------------------------------------
 
 ; handling this interrupt
@@ -55,32 +55,34 @@ int	21h				; terminate & stay resident
 handling:
 	pusha					; push AX CX DX BX SP BP SI DI
 	mov	bp, sp				; bp -> di
-	add	bp, 8*2 + 2*2 - 2		; bp -> cs (ip ax cx dx ...)
+	add	bp, 8*2 + 2*2 - 2		; bp -> cs (next: ip ax cx dx ...)
+						; -2 because sp points to actual value
 	push	ss:[bp] ss:[bp-2] ds es		; push cs ip ds es
 
 	; FINALLY: ax cx dx bx sp bp si di cs ip ds es PUSHED
+	;------------------------------------------------------
 
-	in	al, 60h			; input scancode
+	in	al, 60h				; input scancode
 	cmp	al, HOTKEY
-	jne	old_int			; execute old interrupt if that isn't HOTKEY
+	jne	old_int				; execute old interrupt if there isn't HOTKEY
 	
-	jmp	dump			; will return to terminating:
-	terminating:				
+	jmp	dump				; will return to terminating:
+	terminating:					
 
 	in	al, 61h
 	or	al, 80h
-	out	61h, al			; confirm receipt
+	out	61h, al				; confirm receipt
 	and	al, not 80h
 	out	61h, al
 
-	mov	al, 20h			; notify dos about terminating
+	mov	al, 20h				; notify dos about terminating
 	out	20h, al
 
 	pop	es ds
-	add	sp, 2*2			; skip ip, cs
+	add	sp, 2*2				; skip ip and cs
 	popa
 
-iret
+	iret
 ;------------------------------------------------------
 
 
@@ -92,21 +94,15 @@ old_int:
 	add	sp, 2*2			; skip ip, cs
 	popa
 
-	db	0eah			; jmp far
-old_adr	dw	0			;        :[old_adr]
-old_seg	dw	0			; old_seg:
+		db	0eah		; jmp far
+	old_adr	dw	0		;        :[old_adr]
+	old_seg	dw	0		; old_seg:
 ;------------------------------------------------------
 ;------------------------------------------------------
 
 ; dump function
 ;------------------------------------------------------
 dump:
-;	all registers that i need to dump
-;, DS, ES, SS (Segment), (Index/Pointer). 
-;
-;	from registers:	ax, bx, cx, dx, ds, es, ss, si, di, bp, !!sp!!
-;	from int: cs, ip
-; AX, CX, DX, BX, SP, BP, SI, DI, CS, IP, 
 
 	mov	bp, sp
 	add	bp, N_REGS*2			; set bp to ax (ss:[bp] == ax)
@@ -129,7 +125,9 @@ dump:
 	
 		sub	bp, 2
 		mov	dx, ss:[bp]		; get register value
-		call	itoa
+		push	bx
+		call	itoa			; print dx on the screen
+		pop	bx
 	
 		cmp	bp, sp
 	jne	@@dump_loop
@@ -148,7 +146,6 @@ dump:
 
 include	dumplib.asm
 
-	; finally: ax cx dx bx sp bp si di cs ip ds es pushed
 .data
 	MSG_LEN		equ	5		; !!! HARDCODE !!! be careful
 	reg_msg		db	"AX = "

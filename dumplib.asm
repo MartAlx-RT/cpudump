@@ -75,36 +75,6 @@ print_box	endp
 
 
 ;------------------------------------------------------
-;-----------------CLEAR SHELL FUNCTION-----------------
-; clears the screen and set default video-mode (number 3)
-;-------------------EXPECTED---------------------------
-;-------------------RETURNS----------------------------
-; cleared screen =)
-;-------------------DESTROYS---------------------------
-; nothing
-;------------------------------------------------------
-cls proc
-	push ax cx es di
-
-	mov cx, 80*25
-	mov ax, VIDEOSEG
-	mov es, ax
-	xor di, di
-	xor ax, ax
-	mov ah, 07h
-	cld
-	rep stosw
-
-	pop di es cx ax
-	ret
-cls endp
-;------------------------------------------------------
-;------------------------------------------------------
-
-
-
-
-;------------------------------------------------------
 ;-----------------STRNCPY       FUNCTION---------------
 ; copy n bytes from 
 ;-------------------EXPECTED---------------------------
@@ -123,10 +93,10 @@ strncpy proc
 	jz	@@strncpy_exit			; length = 0 => exit
 
 	cld
-	@@cpy_loop:
+	@@strncpy_loop:
 		lodsb
 		stosw						; copy to es:[di]
-	loop	@@cpy_loop
+	loop	@@strncpy_loop
 
 	@@strncpy_exit:
 	ret
@@ -145,24 +115,22 @@ strncpy endp
 ;-------------------RETURNS----------------------------
 ; none
 ;-------------------DESTROYS---------------------------
-; ax, cx and input parameters
+; ax, cx, bx, dx and input parameters
 ;------------------------------------------------------
 itoa	proc
 	mov	cx, 4			; print 4 symbols
 	add	di, 6			; set di at the end of the line
 	mov	ah, CLR_ATTR
+	xor	bx, bx
 
 	std
+
 @@itoa_loop:
 	mov	al, 0fh
 	and	al, dl			; al = lowest nibble
 
-	cmp	al, 0ah			; print digit or hex-letter
-	jl	@@is_digit
-	add	al, 'A' - '0' - 0ah
-@@is_digit:
-	add	al, '0'
-	;mov	al, byte ptr hex_dgt[al]
+	mov	bl, al
+	mov	al, hex_dgt[bx]		; nibble -> digit
 
 	stosw				; write to VRAM
 
@@ -173,8 +141,6 @@ loop	@@itoa_loop
 itoa	endp
 ;------------------------------------------------------------------------------------
 
-
-; TODO he
 
 
 ;------------------------------------------------------------------------------------
