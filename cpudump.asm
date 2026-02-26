@@ -57,9 +57,9 @@ handling:
 	mov	bp, sp				; bp -> di
 	add	bp, 8*2 + 2*2 - 2		; bp -> cs (next: ip ax cx dx ...)
 						; -2 because sp points to actual value
-	push	ss:[bp] ss:[bp-2] ds es		; push cs ip ds es
+	push	ss:[bp] ss:[bp-2] ss ds es	; push cs ip ds es ss
 
-	; FINALLY: ax cx dx bx sp bp si di cs ip ds es PUSHED
+	; FINALLY: ax cx dx bx sp bp si di cs ip ds es ss PUSHED
 	;------------------------------------------------------
 
 	in	al, 60h				; input scancode
@@ -79,7 +79,7 @@ handling:
 	out	20h, al
 
 	pop	es ds
-	add	sp, 2*2				; skip ip and cs
+	add	sp, 3*2				; skip ip and cs
 	popa
 
 	iret
@@ -91,7 +91,7 @@ handling:
 ;------------------------------------------------------
 old_int:
 	pop	es ds
-	add	sp, 2*2			; skip ip, cs
+	add	sp, 3*2			; skip ip, cs
 	popa
 
 		db	0eah		; jmp far
@@ -160,6 +160,7 @@ include	dumplib.asm
 			db	"IP = "
 			db	"DS = "
 			db	"ES = "
+			db	"SS = "
 	N_REGS		equ	($ - offset reg_msg)/MSG_LEN
 
 	hex_dgt		db	"0123456789ABCDEF"
