@@ -17,9 +17,9 @@ print_box	proc
 	push	bp
 	mov	bp, sp
 
-	mov	ah, clr_attr
+	mov	ah, cs:clr_attr
 
-	cmp	word ptr [bp+6], 0
+	cmp	word ptr ss:[bp+6], 0
 	jz	@@terminate_print_box	; if you wanna print	empty box, go fuck yourself
 
 	xor	cx, cx			; set counter (cx) to zero
@@ -29,7 +29,7 @@ print_box	proc
 	mov	al, LTOP		; draw left-top corner
 	stosw
 
-	mov	cx, [bp+6]
+	mov	cx, ss:[bp+6]
 	mov	al, HLINE		; draw upper horizontal line
 	rep	stosw
 
@@ -37,7 +37,7 @@ print_box	proc
 	stosw
 	add	di, LINE_SIZE-2		; -2 because 'stosw' adds 2 to di
 
-	mov	cx, [bp+4]
+	mov	cx, ss:[bp+4]
 	mov	al, VLINE
 @@right:				; draw right line
 	stosw
@@ -49,15 +49,15 @@ loop	@@right
 	mov	al, RBTM		; draw right-bottom corner
 	stosw
 
-	mov	cx, [bp+6]
+	mov	cx, ss:[bp+6]
 	mov	al, HLINE		; draw lower horizontal line
 	rep	stosw
-	
+
 	mov	al, LBTM		; draw left-bottom corner
 	stosw
 	sub	di, LINE_SIZE-2
 
-	mov	cx, [bp+4]
+	mov	cx, ss:[bp+4]
 	mov	al, VLINE
 @@left:					; draw left line
 	stosw
