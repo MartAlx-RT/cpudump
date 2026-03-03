@@ -34,24 +34,24 @@ org 100h
 attach	proc
 
 	push	0
-	pop	es			; set es:[di] to int09 cell
+	pop	es
 
 	cli
-	mov	di, 4*08h
+	mov	di, 4*08h			; attach int 08h
 	push	es:[di] es:[di+2]
-	pop	tmr_oldseg tmr_oldadr
+	pop	tmr_oldseg tmr_oldadr		; save old int addr
 	mov	word ptr es:[di], offset disp
-	mov	word ptr es:[di+2], cs	; write to the interrupt table
+	mov	word ptr es:[di+2], cs		; write to the int table
 
-	mov	di, 4*09h
+	mov	di, 4*09h			; attach int 09h
 	push	es:[di] es:[di+2]
-	pop	kb_oldseg kb_oldadr
+	pop	kb_oldseg kb_oldadr		; save old int addr
 	mov	word ptr es:[di], offset draw
-	mov	word ptr es:[di+2], cs	; write to the interrupt table
+	mov	word ptr es:[di+2], cs		; write to the int table
 	sti
 
 	mov	ax, 3100h
-	mov	dx, offset EOP
+	lea	dx, EOP
 	shr	dx, 4
 	inc	dx
 

@@ -1,5 +1,6 @@
 
 disp:
+	;cli
 	pusha
 	push	ds es
 
@@ -19,6 +20,7 @@ disp:
 	; in case DRW_DISP
 	call	remember
 	call	refresh
+	mov	cs:status, SV_DISP
 
 @@cmp:
 	call	buf_cmp
@@ -26,12 +28,14 @@ disp:
 @@exit:
 	pop	es ds
 	popa
+	;sti
 			db	0eah	; jmp far
 	tmr_oldadr	dw	0	;        :[old_adr]
 	tmr_oldseg	dw	0	; old_seg:
 
 @@res:
 	call	restore
+	mov	cs:status, NOT_DISP
 	jmp	@@exit
 
 
@@ -50,7 +54,6 @@ refresh	proc
 	mov	cx, SCRN_SIZE/2			; TODO think about mosw
 	rep	movsw
 
-	mov	cs:status, SV_DISP
 	ret
 
 refresh	endp
@@ -89,7 +92,6 @@ restore	proc
 	mov	cx, SCRN_SIZE/2
 	rep	movsw
 
-	mov	cs:status, NOT_DISP
 	ret
 
 restore	endp
@@ -109,12 +111,15 @@ buf_cmp	proc
 
 	cld
 @@loop:
-	repe	movsw
+	repe	cmpsw
 	je	@@exit
 
-	mov	ax, word ptr es:[bx]
-	xchg	ax, word ptr cs:drw_buf[bx]
-	jmp	@@loop
+	mov	ax, word ptr cs:drw_buf[di-2]
+	xchg	ax, word ptr es:[di-2]
+	xchg	ax, word ptr cs:sv_buf[di-2]
+
+	test	cx, cx
+	jnz	@@loop
 
 @@exit:
 	ret

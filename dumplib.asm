@@ -17,10 +17,10 @@ print_box	proc
 	push	bp
 	mov	bp, sp
 
-	mov	ah, cs:clr_attr
+	mov	ah, CLR_ATTR
 
 	cmp	word ptr ss:[bp+6], 0
-	jz	@@terminate_print_box	; if you wanna print	empty box, go fuck yourself
+	jz	@@exit			; if you wanna print empty box, go fuck yourself
 
 	xor	cx, cx			; set counter (cx) to zero
 
@@ -64,7 +64,7 @@ loop	@@right
 	sub	di, LINE_SIZE-2
 loop	@@left
 
-@@terminate_print_box:
+@@exit:
 	pop	bp
 	ret	4
 
@@ -115,27 +115,24 @@ strncpy endp
 ;-------------------RETURNS----------------------------
 ; none
 ;-------------------DESTROYS---------------------------
-; ax, cx, bx, dx and input parameters
+; ax, cx, bx, and input parameters
 ;------------------------------------------------------
 itoa	proc
 	mov	cx, 4			; print 4 symbols
-	add	di, 6			; set di at the end of the line
 	mov	ah, CLR_ATTR
 	xor	bx, bx
 
-	std
-
-@@itoa_loop:
+	cld
+@@loop:
+	rol	dx, 4
 	mov	al, 0fh
-	and	al, dl			; al = lowest nibble
+	and	al, dl
 
 	mov	bl, al
-	mov	al, hex_dgt[bx]		; nibble -> digit
+	mov	al, cs:hex_dgt[bx]
 
-	stosw				; write to VRAM
-
-	shr	dx, 4			; next nibble
-loop	@@itoa_loop
+	stosw
+loop	@@loop
 
 	ret
 itoa	endp

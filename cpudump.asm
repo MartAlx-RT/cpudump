@@ -24,15 +24,15 @@ draw:
 	pop	ax
 
 	cmp	al, HK_SHOW
-	jne	@@next_cmp			; execute old interrupt if there isn't HOTKEY
+	jne	@@if_fold			; execute old interrupt if there isn't HOTKEY
+	cmp	cs:status, NOT_DISP
+	jne	@@exit
 
-	mov	cs:status, DRW_DISP
-	cli
 	call	dump
-	sti
+	mov	cs:status, DRW_DISP
 	jmp	@@exit
 
-@@next_cmp:
+@@if_fold:
 	cmp	al, HK_FOLD
 	jne	@@old_int
 
@@ -70,16 +70,15 @@ draw:
 dump	proc
 
 	mov	bp, sp
-	add	bp, N_REGS*2		; set bp to ax (ss:[bp] == ax)
+	add	bp, N_REGS*2			; set bp to ax (ss:[bp] == ax)
 
 	push	cs
 	pop	ds
-	lea	si, reg_msg
+	lea	si, reg_msg			; ds:[si] -> "ax = ", "bx = ", ...
 
 	push	cs
 	pop	es
-	;mov	bx, offset drw_buf + V_STARTPOS*LINE_SIZE	; bx always points to beginning of the line
-	lea	bx, drw_buf[V_STARTPOS*LINE_SIZE]
+	lea	bx, drw_buf[V_STARTPOS*LINE_SIZE]	; bx -> line beginning
 
 	@@loop:
 		mov	di, bx
@@ -100,11 +99,10 @@ dump	proc
 		cmp	bp, sp
 	ja	@@loop
 
-;	mov	di, (V_STARTPOS-1) * LINE_SIZE
-;	add	di, X_STARTPOS - 2		; set es:[di] to print box
-;	push	(MSG_LEN+4)
-;	push	N_REGS
-;	call	print_box			; print box
+	lea	di, drw_buf[(V_STARTPOS - 1)*LINE_SIZE + (X_STARTPOS - 2)] ; bx -> line beginning
+	push	(MSG_LEN+4)
+	push	N_REGS
+	call	print_box			; print box
 	ret
 
 dump	endp
