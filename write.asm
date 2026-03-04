@@ -1,5 +1,5 @@
 
-draw:
+write:
 	pusha					; push AX CX DX BX SP BP SI DI
 	mov	bp, sp				; bp -> di
 	add	bp, 3*2
@@ -25,18 +25,24 @@ draw:
 
 	cmp	al, HK_SHOW
 	jne	@@if_fold			; execute old interrupt if there isn't HOTKEY
-	cmp	cs:status, NOT_DISP
-	jne	@@exit
+	cmp	cs:status, SV_DISP
+	je	@@refresh
 
+	call	remember
+	mov	cs:status, SV_DISP
+@@refresh:
 	call	dump
-	mov	cs:status, DRW_DISP
+	call	refresh
 	jmp	@@exit
 
 @@if_fold:
 	cmp	al, HK_FOLD
 	jne	@@old_int
+	cmp	cs:status, SV_DISP
+	jne	@@old_int
 
-	mov	cs:status, RES_DISP
+	call	restore
+	mov	cs:status, NOT_DISP
 
 
 @@exit:

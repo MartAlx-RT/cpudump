@@ -3,12 +3,11 @@
 
 locals	@@
 VIDEOSEG	equ	0b800h		; video segment
-X_STARTPOS	equ	(80d/2 - 9d/2)*2	; left border
-SCRN_SIZE	equ	80d*25d*2
+X_STARTPOS	equ	(80d/2 - 9d/2)*2; left border
+SCRN_DIM	equ	80d*25d
 
 
 LINE_SIZE	equ	160d		; line length in bytes (2 bytes/symbol)
-CENTER_POS	equ	80d		; center of line in bytes
 VLINE		equ	0bah		; symbol that used as vertical line
 HLINE		equ	0cdh		; symbol that used as horizontal line
 LTOP		equ	0c9h		; left-top corner symbol
@@ -17,12 +16,12 @@ LBTM		equ	0c8h		; left-bottom corner symbol
 RBTM		equ	0bch		; right-bottom corner symbol
 CLR_ATTR	equ	03h
 
-NOT_DISP	equ	0
-DRW_DISP	equ	1		; mode enums
-SV_DISP		equ	2
-RES_DISP	equ	3
+; enum status
+NOT_DISP	equ	0		; do not display buffer
+SV_DISP		equ	1		; every timer check vram and do triple bufferization
+;
 
-V_STARTPOS	equ	5d		; for box
+V_STARTPOS	equ	5d		; vertical initial position
 
 HK_SHOW		equ	44h		; 44h = 'f10'
 HK_FOLD		equ	43h		; 43h = 'f9'
@@ -46,7 +45,7 @@ attach	proc
 	mov	di, 4*09h			; attach int 09h
 	push	es:[di] es:[di+2]
 	pop	kb_oldseg kb_oldadr		; save old int addr
-	mov	word ptr es:[di], offset draw
+	mov	word ptr es:[di], offset write
 	mov	word ptr es:[di+2], cs		; write to the int table
 	sti
 
@@ -55,13 +54,13 @@ attach	proc
 	shr	dx, 4
 	inc	dx
 
-	int	21h			; terminate & stay resident
+	int	21h				; terminate & stay resident
 
 attach	endp
 
 include display.asm
-include	dumplib.asm
-include cpudump.asm
+include	writelib.asm
+include write.asm
 
 .data
 	MSG_LEN		equ	5		; !!! HARDCODE !!! be careful

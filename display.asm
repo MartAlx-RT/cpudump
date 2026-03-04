@@ -1,34 +1,18 @@
 
 disp:
-	;cli
 	pusha
-	push	ds es
-
-	push	cs
-	pop	ds
-
+	push	ds es			; push destructible registers
 
 	cmp	cs:status, NOT_DISP
 	je	@@exit
 
-	cmp	cs:status, SV_DISP
-	je	@@cmp
-
-	cmp	cs:status, RES_DISP
-	je	@@res
-
-	; in case DRW_DISP
-	call	remember
-	call	refresh
-	mov	cs:status, SV_DISP
-
-@@cmp:
-	call	buf_cmp
+@@save:
+	call	save
 
 @@exit:
 	pop	es ds
-	popa
-	;sti
+	popa				; restore registers
+
 			db	0eah	; jmp far
 	tmr_oldadr	dw	0	;        :[old_adr]
 	tmr_oldseg	dw	0	; old_seg:
@@ -40,82 +24,121 @@ disp:
 
 
 
+;------------------------------------------------------
+;-----------------REFRESH    FUNCTION------------------
+; cpy drw_buf -> vram
+;-------------------EXPECTED---------------------------
+; none
+;-------------------RETURNS----------------------------
+; none
+;-------------------DESTROYS---------------------------
+; ds, es, si, di, cx
+;------------------------------------------------------
 refresh	proc
 
 	push	cs
 	pop	ds
-	lea	si, drw_buf
+	lea	si, drw_buf		; ds:[si] -> drw_buf
 
 	push	VIDEOSEG
 	pop	es
-	xor	di, di
+	xor	di, di			; es:[di] -> vram
 
 	cld
-	mov	cx, SCRN_SIZE/2			; TODO think about mosw
-	rep	movsw
+	mov	cx, SCRN_DIM
+	rep	movsw			; cpy drw_buf to vram
 
 	ret
 
 refresh	endp
 
 
+;------------------------------------------------------
+;-----------------REMEMBER   FUNCTION------------------
+; cpy vram -> sv_buf
+;-------------------EXPECTED---------------------------
+; none
+;-------------------RETURNS----------------------------
+; none
+;-------------------DESTROYS---------------------------
+; ds, es, si, di, cx
+;------------------------------------------------------
 remember	proc
 
 	push	VIDEOSEG
 	pop	ds
-	xor	si, si
+	xor	si, si		; ds:[si] -> vram
 
 	push	cs
 	pop	es
-	lea	di, sv_buf
+	lea	di, sv_buf	; es:[di] -> sv_buf
 
 	cld
-	mov	cx, SCRN_SIZE/2
-	rep	movsw
+	mov	cx, SCRN_DIM
+	rep	movsw		; cpy vram to sv_buf
 
 	ret
 
 remember	endp
 
 
+;------------------------------------------------------
+;-----------------RESTORE    FUNCTION------------------
+; cpy vram -> sv_buf
+;-------------------EXPECTED---------------------------
+; none
+;-------------------RETURNS----------------------------
+; none
+;-------------------DESTROYS---------------------------
+; ds, es, si, di, cx
+;------------------------------------------------------
 restore	proc
 
 	push	cs
 	pop	ds
-	lea	si, sv_buf
+	lea	si, sv_buf	; ds:[si] -> sv_buf
 
 	push	VIDEOSEG
 	pop	es
-	xor	di, di
+	xor	di, di		; es:[di] -> vram
 
 	cld
-	mov	cx, SCRN_SIZE/2
-	rep	movsw
+	mov	cx, SCRN_DIM
+	rep	movsw		; cpy vram to sv_buf
 
 	ret
 
 restore	endp
 
 
-buf_cmp	proc
+;------------------------------------------------------
+;-----------------SAVE       FUNCTION------------------
+; does triple bufferization
+;-------------------EXPECTED---------------------------
+; none
+;-------------------RETURNS----------------------------
+; none
+;-------------------DESTROYS---------------------------
+; ds, es, si, di, ax, cx
+;------------------------------------------------------
+save	proc
 
 	push	VIDEOSEG
 	pop	es
-	xor	di, di
+	xor	di, di		; es:[di] -> vram
 
 	push	cs
 	pop	ds
-	lea	si, drw_buf
+	lea	si, drw_buf	; ds:[si] -> drw_buf
 
-	mov	cx, SCRN_SIZE/2
+	mov	cx, SCRN_DIM
 
 	cld
 @@loop:
 	repe	cmpsw
-	je	@@exit
 
 	mov	ax, word ptr cs:drw_buf[di-2]
-	xchg	ax, word ptr es:[di-2]
+	xchg	ax, word ptr es:[di-2]		; sv_buf <- vram, vram -> drw_buf
 	xchg	ax, word ptr cs:sv_buf[di-2]
 
 	test	cx, cx
@@ -124,6 +147,6 @@ buf_cmp	proc
 @@exit:
 	ret
 
-buf_cmp	endp
+save	endp
 
 

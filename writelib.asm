@@ -6,7 +6,7 @@
 ; !! PASCAL CONVENTION !!
 ; 1st arg(word) - box width
 ; 2nd arg(word) - box height
-; used clr_attr
+; used CLR_ATTR
 ;-------------------RETURNS----------------------------
 ; prints box with left-top at es:[di]
 ;-------------------DESTROYS---------------------------
@@ -87,19 +87,21 @@ print_box	endp
 ; ax, cx, df
 ;------------------------------------------------------
 strncpy proc
+
 	mov	ah, CLR_ATTR
 
 	test	cx, cx
-	jz	@@strncpy_exit			; length = 0 => exit
+	jz	@@exit		; length = 0 => exit
 
 	cld
-	@@strncpy_loop:
+	@@loop:
 		lodsb
-		stosw						; copy to es:[di]
-	loop	@@strncpy_loop
+		stosw		; copy to es:[di]
+	loop	@@loop
 
-	@@strncpy_exit:
+	@@exit:
 	ret
+
 strncpy endp
 
 
@@ -118,7 +120,8 @@ strncpy endp
 ; ax, cx, bx, and input parameters
 ;------------------------------------------------------
 itoa	proc
-	mov	cx, 4			; print 4 symbols
+
+	mov	cx, 4		; print 4 symbols
 	mov	ah, CLR_ATTR
 	xor	bx, bx
 
@@ -130,11 +133,12 @@ itoa	proc
 
 	mov	bl, al
 	mov	al, cs:hex_dgt[bx]
-
 	stosw
+
 loop	@@loop
 
 	ret
+
 itoa	endp
 ;------------------------------------------------------------------------------------
 
